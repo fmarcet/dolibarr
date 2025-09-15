@@ -4,7 +4,7 @@
  * Copyright (C) 2007-2012  Regis Houssin           <regis.houssin@inodbox.com>
  * Copyright (C) 2015-2024	Frédéric France         <frederic.france@free.fr>
  * Copyright (C) 2017       Nicolas ZABOURI         <info@inovea-conseil.com>
- * Copyright (C) 2024		MDW							<mdeweerd@users.noreply.github.com>
+ * Copyright (C) 2024-2025	MDW						<mdeweerd@users.noreply.github.com>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,9 +27,6 @@
 
 // Load Dolibarr environment
 require '../../main.inc.php';
-require_once DOL_DOCUMENT_ROOT.'/core/lib/files.lib.php';
-require_once DOL_DOCUMENT_ROOT.'/core/lib/geturl.lib.php';
-
 /**
  * @var Conf $conf
  * @var DoliDB $db
@@ -38,6 +35,10 @@ require_once DOL_DOCUMENT_ROOT.'/core/lib/geturl.lib.php';
  * @var Translate $langs
  * @var User $user
  */
+require_once DOL_DOCUMENT_ROOT.'/core/lib/admin.lib.php';
+require_once DOL_DOCUMENT_ROOT.'/core/lib/files.lib.php';
+require_once DOL_DOCUMENT_ROOT.'/core/lib/geturl.lib.php';
+
 
 $langs->load("admin");
 
@@ -70,12 +71,12 @@ print '<tr class="oddeven"><td width="300">'.$langs->trans("VersionProgram").'</
 // If current version differs from last upgrade
 if (!getDolGlobalString('MAIN_VERSION_LAST_UPGRADE')) {
 	// Compare version with last install database version (upgrades never occurred)
-	if (DOL_VERSION != getDolGlobalString('MAIN_VERSION_LAST_INSTALL')) {
+	if (in_array(versioncompare(versiondolibarrarray(), preg_split('/[\-\.]/', getDolGlobalString('MAIN_VERSION_LAST_INSTALL'))), array(-2, -1, 1, 2))) {
 		print ' '.img_warning($langs->trans("RunningUpdateProcessMayBeRequired", DOL_VERSION, getDolGlobalString('MAIN_VERSION_LAST_INSTALL')));
 	}
 } else {
 	// Compare version with last upgrade database version
-	if (DOL_VERSION != $conf->global->MAIN_VERSION_LAST_UPGRADE) {
+	if (in_array(versioncompare(versiondolibarrarray(), preg_split('/[\-\.]/', getDolGlobalString('MAIN_VERSION_LAST_UPGRADE'))), array(-2, -1, 1, 2))) {
 		print ' '.img_warning($langs->trans("RunningUpdateProcessMayBeRequired", DOL_VERSION, getDolGlobalString('MAIN_VERSION_LAST_UPGRADE')));
 	}
 }
@@ -141,7 +142,9 @@ if (dol_is_file($xmlfile)) {
 	print ' <span class="warning">('.$langs->trans("AvailableOnlyOnPackagedVersions").')</span></label>';
 	print '<br>';
 }
+
 print '<br>';
+
 print '<!-- for a remote target=remote&xmlremote=... -->'."\n";
 if ($enableremotecheck) {
 	print '<input type="radio" name="target" id="checkboxremote" value="remote"'.(GETPOST('target') == 'remote' ? 'checked="checked"' : '').'> <label for="checkboxremote">'.$langs->trans("RemoteSignature").'</label> = ';
@@ -188,7 +191,7 @@ if (GETPOST('target') == 'remote') {
 	$xmlarray = getURLContent($xmlremote, 'GET', '', 1, array(), array('http', 'https'), 0);	// Accept http or https links on external remote server only. Same is used into api_setup.class.php.
 
 	// Return array('content'=>response,'curl_error_no'=>errno,'curl_error_msg'=>errmsg...)
-	if (!$xmlarray['curl_error_no'] && $xmlarray['http_code'] != '400' && $xmlarray['http_code'] != '404') {
+	if (!$xmlarray['curl_error_no'] && $xmlarray['http_code'] != 400 && $xmlarray['http_code'] != 404) {
 		$xmlfile = $xmlarray['content'];
 		//print "xmlfilestart".$xmlfile."xmlfileend";
 		if (LIBXML_VERSION < 20900) {
@@ -300,7 +303,7 @@ if (empty($error) && !empty($xml)) {
 				$out .= '<td>'.dol_escape_htmltag($file['filename']).'</td>'."\n";
 				$out .= '<td class="right">';
 				if (!empty($file['expectedsize'])) {
-					$out .= dol_print_size($file['expectedsize']);
+					$out .= dol_print_size((int) $file['expectedsize']);
 				}
 				$out .= '</td>'."\n";
 				$out .= '<td class="center">'.dol_escape_htmltag($file['expectedmd5']).'</td>'."\n";
@@ -341,7 +344,7 @@ if (empty($error) && !empty($xml)) {
 				$out .= '<td class="center">'.dol_escape_htmltag($file['md5']).'</td>'."\n";
 				$out .= '<td class="right">';
 				if ($file['expectedsize']) {
-					$out .= dol_print_size($file['expectedsize']);
+					$out .= dol_print_size((int) $file['expectedsize']);
 				}
 				$out .= '</td>'."\n";
 				$size = dol_filesize(DOL_DOCUMENT_ROOT.'/'.$file['filename']);
@@ -394,7 +397,7 @@ if (empty($error) && !empty($xml)) {
 					$out .= ' '.$form->textwithpicto('', $htmltext, 1, 'help', '', 0, 2, 'helprm'.$i);
 				}
 				$out .= '</td>'."\n";
-				$out .= '<td class="center">'.dol_escape_htmltag($file['expectedmd5']).'</td>'."\n";  // @phan-suppress-current-line PhanTypeInvalidDimOffset
+				$out .= '<td class="center">'.dol_escape_htmltag((string) $file['expectedmd5']).'</td>'."\n";  // @phan-suppress-current-line PhanTypeInvalidDimOffset
 				$out .= '<td class="center">'.dol_escape_htmltag($file['md5']).'</td>'."\n";
 				$size = dol_filesize(DOL_DOCUMENT_ROOT.'/'.$file['filename']);
 				$totalsize += $size;
